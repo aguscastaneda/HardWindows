@@ -43,9 +43,10 @@ QPushButton#primaryButton:hover {
 }
 
 QLabel#titleLabel {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 24px;
+    font-weight: 700;
     color: #f0f7ff;
+    padding: 8px 0px;
 }
 
 QTreeView, QListView, QTableView, QTableWidget {

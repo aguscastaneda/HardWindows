@@ -7,7 +7,7 @@ class NavigationBar(QtWidgets.QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("sideBar")
-        self.setFixedWidth(200)
+        self.setFixedWidth(280)
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
