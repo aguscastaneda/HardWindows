@@ -1,0 +1,6 @@
+psutil>=5.9
+# Pinned to wheels that exist for Python 3.7 on Windows
+PyQt5==5.15.9
+PyQt5-Qt5==5.15.2
+PyQt5-sip==12.11.0
+pyqtgraph==0.12.4
