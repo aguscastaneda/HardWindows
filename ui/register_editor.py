@@ -2,6 +2,8 @@ from PyQt5 import QtWidgets, QtCore
 import os
 from core.user_utils import list_local_users, create_user, delete_user, change_password
 from core.permissions import is_admin
+from core.policies import get_all_policies, set_policy_value
+from widgets import message_box
 import psutil
 
 class RegisterEditorPage(QtWidgets.QWidget):
@@ -11,107 +13,86 @@ class RegisterEditorPage(QtWidgets.QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
         
+        # Título principal
         title = QtWidgets.QLabel("Editor de Registro - Sistema")
         title.setObjectName("titleLabel")
         title.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #bcd7ff;")
         layout.addWidget(title)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+
+        # Estilo común para group boxes
+        group_style = (
+            "QGroupBox {"
+            "  border: 1px solid #2e2e3e;"
+            "  border-radius: 10px;"
+            "  margin-top: 18px;"
+            "  background-color: #131a2a;"
+            "}"
+            "QGroupBox::title {"
+            "  subcontrol-origin: margin;"
+            "  left: 12px;"
+            "  padding: 2px 8px;"
+            "  color: #00c8ff;"
+            "  font-size: 16px;"
+            "  font-weight: 600;"
+            "}"
+        )
+
+        # ---------------- LEFT PANEL ---------------- #
         left = QtWidgets.QWidget()
         left_layout = QtWidgets.QVBoxLayout(left)
-        left_layout.setSpacing(10)
+        left_layout.setSpacing(12)
 
-        # Tree de carpetas clave (simplificado): mostrar Program Files, Windows, Users
-        lbl_tree = QtWidgets.QLabel("Estructura de carpetas")
-        lbl_tree.setStyleSheet("font-weight: bold; font-size: 14px; color: #00c8ff;")
-        left_layout.addWidget(lbl_tree)
-        self.tree = QtWidgets.QTreeWidget()
-        self.tree.setHeaderLabels(["Ruta", "Tipo"])
-        self.tree.setStyleSheet(
-            """
-            QTreeWidget {
-                background-color: #1a1a2e;
-                color: #ffffff;
-                border: 1px solid #2e2e3e;
-                border-radius: 6px;
-            }
-            QTreeWidget::item:selected { background-color: #00c8ff; color: #000000; }
-            """
+        # Grupo: Restricciones de Windows
+        grp_restr = QtWidgets.QGroupBox("Restricciones de Windows")
+        grp_restr.setStyleSheet(group_style)
+        grp_restr.setMinimumHeight(240)
+        restr_layout = QtWidgets.QVBoxLayout(grp_restr)
+        restr_layout.setContentsMargins(12, 12, 12, 12)
+        lbl_desc = QtWidgets.QLabel(
+            "Activa o desactiva funciones del sistema. 0 = permitido, 1 = bloqueado.\n"
+            "Algunos cambios requieren cerrar sesión para aplicarse."
         )
-        left_layout.addWidget(self.tree)
-        self.load_folder_tree()
+        lbl_desc.setWordWrap(True)
+        restr_layout.addWidget(lbl_desc)
 
-        right = QtWidgets.QWidget()
-        right_layout = QtWidgets.QVBoxLayout(right)
-        right_layout.setSpacing(12)
+        self.chk_taskmgr = QtWidgets.QCheckBox("Bloquear Administrador de Tareas")
+        self.chk_control = QtWidgets.QCheckBox("Bloquear Panel de Control y Configuración")
+        self.chk_run = QtWidgets.QCheckBox("Desactivar Ejecutar (Win + R)")
+        self.chk_regedit = QtWidgets.QCheckBox("Bloquear Editor de Registro")
 
-        # ABM usuarios
-        lbl_users = QtWidgets.QLabel("Usuarios locales")
-        lbl_users.setStyleSheet("font-weight: bold; font-size: 14px; color: #00c8ff;")
-        right_layout.addWidget(lbl_users)
-        self.users_list = QtWidgets.QListWidget()
-        self.users_list.setStyleSheet(
-            """
-            QListWidget {
-                background-color: #1a1a2e;
-                color: #ffffff;
-                border: 1px solid #2e2e3e;
-                border-radius: 6px;
-                padding: 6px;
-            }
-            QListWidget::item:selected { background-color: #00c8ff; color: #000000; }
-            """
-        )
-        right_layout.addWidget(self.users_list)
-        self.load_users()
+        for c in (self.chk_taskmgr, self.chk_control, self.chk_run, self.chk_regedit):
+            c.setTristate(False)
+            restr_layout.addWidget(c)
 
-        h = QtWidgets.QHBoxLayout()
-        self.user_name = QtWidgets.QLineEdit()
-        self.user_name.setPlaceholderText("Nombre")
-        self.user_pass = QtWidgets.QLineEdit()
-        self.user_pass.setPlaceholderText("Contraseña")
-        self.user_pass.setEchoMode(QtWidgets.QLineEdit.Password)
-        h.addWidget(self.user_name)
-        h.addWidget(self.user_pass)
-        right_layout.addLayout(h)
+        self._loading_policies = False
+        self.refresh_policy_states()
 
-        btn_add = QtWidgets.QPushButton("Crear usuario")
-        btn_add.clicked.connect(self.on_create_user)
-        btn_del = QtWidgets.QPushButton("Eliminar seleccionado")
-        btn_del.clicked.connect(self.on_delete_user)
-        for b in (btn_add, btn_del):
-            b.setStyleSheet("padding: 8px; font-weight: bold;")
-        right_layout.addWidget(btn_add)
-        right_layout.addWidget(btn_del)
+        self.chk_taskmgr.toggled.connect(lambda v: self._on_policy_toggle("DisableTaskMgr", v))
+        self.chk_control.toggled.connect(lambda v: self._on_policy_toggle("NoControlPanel", v))
+        self.chk_run.toggled.connect(lambda v: self._on_policy_toggle("NoRun", v))
+        self.chk_regedit.toggled.connect(lambda v: self._on_policy_toggle("DisableRegistryTools", v))
 
-        # Cambio de contraseña
-        lbl_change = QtWidgets.QLabel("Cambiar contraseña")
-        lbl_change.setStyleSheet("font-weight: bold; font-size: 14px; color: #00c8ff;")
-        right_layout.addWidget(lbl_change)
-        change_row = QtWidgets.QHBoxLayout()
-        self.new_pass = QtWidgets.QLineEdit()
-        self.new_pass.setPlaceholderText("Nueva contraseña")
-        self.new_pass.setEchoMode(QtWidgets.QLineEdit.Password)
-        btn_change = QtWidgets.QPushButton("Actualizar contraseña")
-        btn_change.setStyleSheet("padding: 8px; font-weight: bold;")
-        btn_change.clicked.connect(self.on_change_password)
-        change_row.addWidget(self.new_pass)
-        change_row.addWidget(btn_change)
-        right_layout.addLayout(change_row)
+        left_layout.addWidget(grp_restr)
 
-        # Process controls
-        lbl_proc = QtWidgets.QLabel("Procesos (seleccionar PID y terminar)")
-        lbl_proc.setStyleSheet("font-weight: bold; font-size: 14px; color: #00c8ff;")
-        right_layout.addWidget(lbl_proc)
+        # Grupo: Gestión de Procesos
+        grp_proc = QtWidgets.QGroupBox("Gestión de Procesos")
+        grp_proc.setStyleSheet(group_style)
+        grp_proc.setMinimumHeight(340)
+        proc_layout = QtWidgets.QVBoxLayout(grp_proc)
+        proc_layout.setContentsMargins(12, 12, 12, 12)
+
         self.proc_table = QtWidgets.QTableWidget(0, 2)
-        self.proc_table.setHorizontalHeaderLabels(["PID", "Nombre"])
+        self.proc_table.setHorizontalHeaderLabels(["Nombre", "PID"])
         self.proc_table.setStyleSheet(
             """
             QTableWidget {
-                background-color: #1a1a2e;
+                background-color: #0f1726;
                 color: #ffffff;
                 border: 1px solid #2e2e3e;
-                border-radius: 6px;
+                border-radius: 8px;
                 gridline-color: #2e2e3e;
             }
             QHeaderView::section {
@@ -122,52 +103,144 @@ class RegisterEditorPage(QtWidgets.QWidget):
             }
             """
         )
-        right_layout.addWidget(self.proc_table)
+        header = self.proc_table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        proc_layout.addWidget(self.proc_table)
+
+        btns_row = QtWidgets.QHBoxLayout()
+        btns_row.setSpacing(8)
         btn_refresh_proc = QtWidgets.QPushButton("Actualizar procesos")
         btn_refresh_proc.clicked.connect(self.load_processes)
-        btn_kill = QtWidgets.QPushButton("Terminar proceso seleccionado")
-        btn_kill.clicked.connect(self.kill_selected)
-        for b in (btn_refresh_proc, btn_kill):
-            b.setStyleSheet("padding: 8px; font-weight: bold;")
-        right_layout.addWidget(btn_refresh_proc)
-        right_layout.addWidget(btn_kill)
+        btns_row.addWidget(btn_refresh_proc)
 
+        self.proc_pid_input = QtWidgets.QLineEdit()
+        self.proc_pid_input.setPlaceholderText("PID")
+        self.proc_pid_input.setFixedWidth(140)
+        btns_row.addWidget(self.proc_pid_input)
+
+        btn_kill_by_pid = QtWidgets.QPushButton("Terminar Proceso")
+        btn_kill_by_pid.clicked.connect(self.terminate_by_pid)
+        btns_row.addWidget(btn_kill_by_pid)
+        btns_row.addStretch(1)
+
+        for b in (btn_refresh_proc, btn_kill_by_pid):
+            b.setStyleSheet("padding: 8px 12px; font-weight: 600;")
+
+        proc_layout.addLayout(btns_row)
+        left_layout.addWidget(grp_proc)
+
+        # ---------------- RIGHT PANEL ---------------- #
+        right = QtWidgets.QWidget()
+        right_layout = QtWidgets.QVBoxLayout(right)
+        right_layout.setSpacing(15)
+
+        # Grupo: Usuarios locales
+        grp_users = QtWidgets.QGroupBox("Usuarios locales")
+        grp_users.setStyleSheet(group_style)
+        grp_users.setMinimumHeight(300)
+        users_layout = QtWidgets.QVBoxLayout(grp_users)
+        users_layout.setContentsMargins(12, 12, 12, 12)
+        self.users_list = QtWidgets.QListWidget()
+        self.users_list.setStyleSheet(
+            """
+            QListWidget {
+                background-color: #0f1726;
+                color: #ffffff;
+                border: 1px solid #2e2e3e;
+                border-radius: 8px;
+                padding: 6px;
+            }
+            QListWidget::item:selected { background-color: #00c8ff; color: #000000; }
+            """
+        )
+        users_layout.addWidget(self.users_list)
+
+        h = QtWidgets.QHBoxLayout()
+        self.user_name = QtWidgets.QLineEdit()
+        self.user_name.setPlaceholderText("Nombre")
+        self.user_pass = QtWidgets.QLineEdit()
+        self.user_pass.setPlaceholderText("Contraseña")
+        self.user_pass.setEchoMode(QtWidgets.QLineEdit.Password)
+        h.addWidget(self.user_name)
+        h.addWidget(self.user_pass)
+        users_layout.addLayout(h)
+
+        btn_add = QtWidgets.QPushButton("Crear usuario")
+        btn_add.clicked.connect(self.on_create_user)
+        btn_del = QtWidgets.QPushButton("Eliminar seleccionado")
+        btn_del.clicked.connect(self.on_delete_user)
+
+        for b in (btn_add, btn_del):
+            b.setStyleSheet("padding: 8px 12px; font-weight: 600;")
+
+        users_layout.addWidget(btn_add)
+        users_layout.addWidget(btn_del)
+        right_layout.addWidget(grp_users)
+
+        # Grupo: Cambiar contraseña
+        grp_pwd = QtWidgets.QGroupBox("Cambiar contraseña")
+        grp_pwd.setStyleSheet(group_style)
+        grp_pwd.setMinimumHeight(140)
+        pwd_layout = QtWidgets.QHBoxLayout(grp_pwd)
+        pwd_layout.setContentsMargins(12, 12, 12, 12)
+        self.new_pass = QtWidgets.QLineEdit()
+        self.new_pass.setPlaceholderText("Nueva contraseña")
+        self.new_pass.setEchoMode(QtWidgets.QLineEdit.Password)
+        btn_change = QtWidgets.QPushButton("Actualizar contraseña")
+        btn_change.setStyleSheet("padding: 8px 12px; font-weight: 600;")
+        btn_change.clicked.connect(self.on_change_password)
+        pwd_layout.addWidget(self.new_pass)
+        pwd_layout.addWidget(btn_change)
+        right_layout.addWidget(grp_pwd)
+
+        # Agregar ambos paneles al splitter
         splitter.addWidget(left)
         splitter.addWidget(right)
         layout.addWidget(splitter)
-        splitter.setStretchFactor(0, 2)
+        splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
 
-        # power buttons
+        # Power buttons
         box = QtWidgets.QHBoxLayout()
         btn_shutdown = QtWidgets.QPushButton("Apagar ahora")
         btn_reboot = QtWidgets.QPushButton("Reiniciar ahora")
         btn_shutdown.clicked.connect(self.on_shutdown)
         btn_reboot.clicked.connect(self.on_reboot)
+
         for b in (btn_shutdown, btn_reboot):
-            b.setStyleSheet("padding: 8px; font-weight: bold;")
+            b.setStyleSheet("padding: 8px 12px; font-weight: 600;")
+
         box.addWidget(btn_shutdown)
         box.addWidget(btn_reboot)
         layout.addLayout(box)
 
+        # Cargar datos iniciales
+        self.load_users()
         self.load_processes()
 
-    def load_folder_tree(self):
-        self.tree.clear()
-        roots = [os.getenv("SystemRoot", r"C:\Windows"), os.getenv("ProgramFiles", r"C:\Program Files"), os.path.expanduser("~")]
-        for r in roots:
-            root_item = QtWidgets.QTreeWidgetItem([r, "Carpeta"])
-            self.tree.addTopLevelItem(root_item)
-            # listar subcarpetas principales (no profundizar demasiado)
-            try:
-                for name in os.listdir(r)[:30]:
-                    path = os.path.join(r, name)
-                    if os.path.isdir(path):
-                        child = QtWidgets.QTreeWidgetItem([path, "Carpeta"])
-                        root_item.addChild(child)
-            except Exception:
-                continue
+    # ---------------- POLICIES ---------------- #
+    def refresh_policy_states(self):
+        self._loading_policies = True
+        states = get_all_policies()
+        self.chk_taskmgr.setChecked(bool(states.get("DisableTaskMgr") == 1))
+        self.chk_control.setChecked(bool(states.get("NoControlPanel") == 1))
+        self.chk_run.setChecked(bool(states.get("NoRun") == 1))
+        self.chk_regedit.setChecked(bool(states.get("DisableRegistryTools") == 1))
+        self._loading_policies = False
 
+    def _on_policy_toggle(self, name: str, is_checked: bool):
+        if self._loading_policies:
+            return
+        ok = set_policy_value(name, blocked=is_checked)
+        if not ok:
+            message_box.error(self, "Error", "No se pudo aplicar el cambio. Necesita permisos de administrador.")
+            self.refresh_policy_states()
+            return
+        message_box.warn(self, "Atención", "Algunos cambios requieren cerrar sesión para aplicarse.")
+
+    # ---------------- USERS ---------------- #
     def load_users(self):
         self.users_list.clear()
         users = list_local_users()
@@ -203,51 +276,6 @@ class RegisterEditorPage(QtWidgets.QWidget):
         else:
             QtWidgets.QMessageBox.warning(self, "Error", msg)
 
-    def load_processes(self):
-        self.proc_table.setRowCount(0)
-        for p in psutil.process_iter(attrs=["pid", "name"]):
-            try:
-                row = self.proc_table.rowCount()
-                self.proc_table.insertRow(row)
-                self.proc_table.setItem(row, 0, QtWidgets.QTableWidgetItem(str(p.info["pid"])))
-                self.proc_table.setItem(row, 1, QtWidgets.QTableWidgetItem(str(p.info.get("name", ""))))
-            except Exception:
-                continue
-
-    def kill_selected(self):
-        sel = self.proc_table.currentRow()
-        if sel < 0:
-            QtWidgets.QMessageBox.warning(self, "Aviso", "Seleccione un proceso")
-            return
-        pid_item = self.proc_table.item(sel, 0)
-        if not pid_item:
-            return
-        pid = int(pid_item.text())
-        try:
-            p = psutil.Process(pid)
-            p.terminate()
-            p.wait(timeout=3)
-            QtWidgets.QMessageBox.information(self, "Listo", f"Proceso {pid} finalizado")
-            self.load_processes()
-        except psutil.AccessDenied:
-            QtWidgets.QMessageBox.warning(self, "Permisos", "Se requieren permisos de administrador...")
-        except psutil.NoSuchProcess:
-            QtWidgets.QMessageBox.warning(self, "Error", "Proceso inexistente")
-        except Exception as e:
-            QtWidgets.QMessageBox.warning(self, "Error", str(e))
-
-    def on_shutdown(self):
-        if not is_admin():
-            QtWidgets.QMessageBox.warning(self, "Permisos", "Se requieren permisos de administrador...")
-            return
-        os.system("shutdown /s /t 0")
-
-    def on_reboot(self):
-        if not is_admin():
-            QtWidgets.QMessageBox.warning(self, "Permisos", "Se requieren permisos de administrador...")
-            return
-        os.system("shutdown /r /t 0")
-
     def on_change_password(self):
         sel = self.users_list.currentItem()
         if not sel:
@@ -264,3 +292,52 @@ class RegisterEditorPage(QtWidgets.QWidget):
             self.new_pass.clear()
         else:
             QtWidgets.QMessageBox.warning(self, "Error", msg)
+
+    # ---------------- PROCESSES ---------------- #
+    def load_processes(self):
+        self.proc_table.setRowCount(0)
+        for p in psutil.process_iter(attrs=["pid", "name"]):
+            try:
+                row = self.proc_table.rowCount()
+                self.proc_table.insertRow(row)
+                # Nombre, PID
+                self.proc_table.setItem(row, 0, QtWidgets.QTableWidgetItem(str(p.info.get("name", ""))))
+                self.proc_table.setItem(row, 1, QtWidgets.QTableWidgetItem(str(p.info["pid"])))
+            except Exception:
+                continue
+
+    def terminate_by_pid(self):
+        pid_text = self.proc_pid_input.text().strip()
+        if not pid_text:
+            QtWidgets.QMessageBox.warning(self, "Aviso", "Ingrese un PID")
+            return
+        try:
+            pid = int(pid_text)
+        except ValueError:
+            QtWidgets.QMessageBox.warning(self, "Validación", "PID inválido")
+            return
+        try:
+            p = psutil.Process(pid)
+            p.terminate()
+            p.wait(timeout=3)
+            QtWidgets.QMessageBox.information(self, "Listo", f"Proceso {pid} finalizado")
+            self.load_processes()
+        except psutil.AccessDenied:
+            QtWidgets.QMessageBox.warning(self, "Permisos", "Se requieren permisos de administrador...")
+        except psutil.NoSuchProcess:
+            QtWidgets.QMessageBox.warning(self, "Error", "Proceso inexistente")
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(self, "Error", str(e))
+
+    # ---------------- POWER ---------------- #
+    def on_shutdown(self):
+        if not is_admin():
+            QtWidgets.QMessageBox.warning(self, "Permisos", "Se requieren permisos de administrador...")
+            return
+        os.system("shutdown /s /t 0")
+
+    def on_reboot(self):
+        if not is_admin():
+            QtWidgets.QMessageBox.warning(self, "Permisos", "Se requieren permisos de administrador...")
+            return
+        os.system("shutdown /r /t 0")

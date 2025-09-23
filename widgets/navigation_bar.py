@@ -27,10 +27,12 @@ class NavigationBar(QtWidgets.QFrame):
         self.btn_registry = QtWidgets.QPushButton(" Editor Registro")
         self.btn_registry.setObjectName("navButton")
         self.btn_registry.clicked.connect(lambda: self.emit_key("registry"))
+        
 
         layout.addWidget(self.btn_home)
         layout.addWidget(self.btn_manager)
         layout.addWidget(self.btn_registry)
+        
 
         layout.addStretch(1)
 
@@ -42,7 +44,7 @@ class NavigationBar(QtWidgets.QFrame):
         self.buttons = {
             "home": self.btn_home,
             "manager": self.btn_manager,
-            "registry": self.btn_registry
+            "registry": self.btn_registry,
         }
         self.set_active("home")
 

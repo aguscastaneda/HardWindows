@@ -58,3 +58,4 @@ class MainWindow(QtWidgets.QMainWindow):
             self.stack.setCurrentWidget(self.manager)
         elif key == "registry":
             self.stack.setCurrentWidget(self.register_editor)
+        

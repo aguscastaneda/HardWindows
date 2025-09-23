@@ -2,6 +2,8 @@ import sys
 import os
 from PyQt5 import QtWidgets, QtGui
 from ui.main_window import MainWindow
+from core.permissions import is_admin
+from core.policies import reset_all_to_allowed
 
 def load_qss(path):
     try:
@@ -17,6 +19,13 @@ def main():
     qss = load_qss(qss_path)
     if qss:
         app.setStyleSheet(qss)
+
+    # Si es admin, restaurar políticas globales a permitido
+    try:
+        if is_admin():
+            reset_all_to_allowed()
+    except Exception:
+        pass
 
     win = MainWindow()
     win.show()
