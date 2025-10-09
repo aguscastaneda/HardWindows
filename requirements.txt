@@ -4,7 +4,3 @@ PyQt5-Qt5==5.15.2
 PyQt5-sip==12.11.0
 pyqtgraph==0.12.4
 
-python -m venv .venv
-.\.venv\Scripts\activate   # en Windows
-source .venv/bin/activate  # en Linux/Mac
-pip install -r requirements.txt
