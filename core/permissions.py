@@ -46,7 +46,7 @@ def logoff() -> bool:
         return False
     try:
         import subprocess
-        # shutdown /l cierra sesión
+        # shutdown /l cierra sesion
         subprocess.Popen(["shutdown", "/l"])
         return True
     except Exception:

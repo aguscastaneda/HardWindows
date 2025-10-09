@@ -21,7 +21,6 @@ class Monitor:
     def sample(self) -> None:
         cpu = psutil.cpu_percent(interval=None)
         ram = psutil.virtual_memory().percent
-        # En Windows, la raíz válida suele ser la unidad del cwd; psutil.disk_usage('.') es más seguro
         try:
             disk = psutil.disk_usage('.') .percent
         except Exception:

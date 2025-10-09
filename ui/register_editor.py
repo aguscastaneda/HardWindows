@@ -13,7 +13,7 @@ class RegisterEditorPage(QtWidgets.QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
         
-        # Título principal
+        # Titulo principal
         title = QtWidgets.QLabel("Editor de Registro - Sistema")
         title.setObjectName("titleLabel")
         title.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
@@ -22,7 +22,7 @@ class RegisterEditorPage(QtWidgets.QWidget):
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-        # Estilo común para group boxes
+        # Estilo comon para boxes
         group_style = (
             "QGroupBox {"
             "  border: 1px solid #2e2e3e;"
@@ -40,14 +40,12 @@ class RegisterEditorPage(QtWidgets.QWidget):
             "}"
         )
 
-        # ---------------- LEFT PANEL ---------------- #
         left = QtWidgets.QWidget()
         left_layout = QtWidgets.QVBoxLayout(left)
         left_layout.setSpacing(12)
 
 
 
-        # Grupo: Gestión de Procesos
         grp_proc = QtWidgets.QGroupBox("Gestión de Procesos")
         grp_proc.setStyleSheet(group_style)
         grp_proc.setMinimumHeight(580)
@@ -101,12 +99,10 @@ class RegisterEditorPage(QtWidgets.QWidget):
         proc_layout.addLayout(btns_row)
         left_layout.addWidget(grp_proc)
 
-        # ---------------- RIGHT PANEL ---------------- #
         right = QtWidgets.QWidget()
         right_layout = QtWidgets.QVBoxLayout(right)
         right_layout.setSpacing(15)
 
-        # Grupo: Usuarios locales
         grp_users = QtWidgets.QGroupBox("Usuarios locales")
         grp_users.setStyleSheet(group_style)
         grp_users.setMinimumHeight(300)
@@ -149,7 +145,6 @@ class RegisterEditorPage(QtWidgets.QWidget):
         users_layout.addWidget(btn_del)
         right_layout.addWidget(grp_users)
 
-        # Grupo: Cambiar contraseña
         grp_pwd = QtWidgets.QGroupBox("Cambiar contraseña")
         grp_pwd.setStyleSheet(group_style)
         grp_pwd.setMinimumHeight(140)
@@ -165,14 +160,12 @@ class RegisterEditorPage(QtWidgets.QWidget):
         pwd_layout.addWidget(btn_change)
         right_layout.addWidget(grp_pwd)
 
-        # Agregar ambos paneles al splitter
         splitter.addWidget(left)
         splitter.addWidget(right)
         layout.addWidget(splitter)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
 
-        # Power buttons
         box = QtWidgets.QHBoxLayout()
         btn_shutdown = QtWidgets.QPushButton("Apagar ahora")
         btn_reboot = QtWidgets.QPushButton("Reiniciar ahora")
@@ -186,13 +179,10 @@ class RegisterEditorPage(QtWidgets.QWidget):
         box.addWidget(btn_reboot)
         layout.addLayout(box)
 
-        # Cargar datos iniciales
         self.load_users()
         self.load_processes()
 
 
-
-    # ---------------- USERS ---------------- #
     def load_users(self):
         self.users_list.clear()
         users = list_local_users()
@@ -245,14 +235,12 @@ class RegisterEditorPage(QtWidgets.QWidget):
         else:
             QtWidgets.QMessageBox.warning(self, "Error", msg)
 
-    # ---------------- PROCESSES ---------------- #
     def load_processes(self):
         self.proc_table.setRowCount(0)
         for p in psutil.process_iter(attrs=["pid", "name"]):
             try:
                 row = self.proc_table.rowCount()
                 self.proc_table.insertRow(row)
-                # Nombre, PID
                 self.proc_table.setItem(row, 0, QtWidgets.QTableWidgetItem(str(p.info.get("name", ""))))
                 self.proc_table.setItem(row, 1, QtWidgets.QTableWidgetItem(str(p.info["pid"])))
             except Exception:
@@ -281,7 +269,6 @@ class RegisterEditorPage(QtWidgets.QWidget):
         except Exception as e:
             QtWidgets.QMessageBox.warning(self, "Error", str(e))
 
-    # ---------------- POWER ---------------- #
     def on_shutdown(self):
         if not is_admin():
             QtWidgets.QMessageBox.warning(self, "Permisos", "Se requieren permisos de administrador...")

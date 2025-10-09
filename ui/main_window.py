@@ -19,16 +19,13 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout(self._central)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Side navigation
         self.nav = NavigationBar()
         self.nav.button_clicked.connect(self.on_nav_clicked)
         layout.addWidget(self.nav, 0)
 
-        # Main stack
         self.stack = QtWidgets.QStackedWidget()
         layout.addWidget(self.stack, 1)
 
-        # Pages
         self.home = HomePage()
         self.manager = ManagerPage()
         self.register_editor = RegisterEditorPage()
@@ -39,7 +36,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stack.addWidget(self.register_editor)
         self.stack.addWidget(self.policies)
 
-        # Footer
         self.footer = Footer()
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(self.stack)
@@ -47,10 +43,8 @@ class MainWindow(QtWidgets.QMainWindow):
         vbox.setStretch(0, 1)
         vbox.setStretch(1, 0)
 
-        # replace right side
         layout.addLayout(vbox, 1)
 
-        # default page
         self.nav.set_active("home")
         self.stack.setCurrentWidget(self.home)
 

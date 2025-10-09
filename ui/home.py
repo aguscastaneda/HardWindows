@@ -15,7 +15,6 @@ class HomePage(QtWidgets.QWidget):
         header.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         layout.addWidget(header)
 
-        # Charts area
         charts_container = QtWidgets.QWidget()
         charts_layout = QtWidgets.QHBoxLayout(charts_container)
         charts_layout.setContentsMargins(0, 0, 0, 0)
@@ -25,12 +24,10 @@ class HomePage(QtWidgets.QWidget):
         self.ram_chart = ResourceChart(title="RAM (%)")
         self.disk_chart = ResourceChart(title="Disco (%)")
         
-        # Make charts larger
         self.cpu_chart.setMinimumSize(350, 280)
         self.ram_chart.setMinimumSize(350, 280)
         self.disk_chart.setMinimumSize(350, 280)
         
-        # Allow expand
         self.cpu_chart.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.ram_chart.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.disk_chart.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -41,19 +38,16 @@ class HomePage(QtWidgets.QWidget):
         
         layout.addWidget(charts_container, 1)
 
-        # Report summary - estilo en grilla con labels
         report_container = QtWidgets.QWidget()
         report_layout = QtWidgets.QGridLayout(report_container)
         report_layout.setContentsMargins(10, 10, 10, 10)
         report_layout.setSpacing(20)
 
-        # Labels para métricas
         self.cpu_label = QtWidgets.QLabel("CPU: -- %")
         self.ram_label = QtWidgets.QLabel("RAM: -- %")
         self.disk_label = QtWidgets.QLabel("Disco (root): -- %")
         self.usage_label = QtWidgets.QLabel("Uso disco actual: -- %")
 
-        # Estilo para todas las tarjetas
         style = """
             QLabel {
                 background-color: #1e1e2f;
@@ -70,7 +64,6 @@ class HomePage(QtWidgets.QWidget):
         self.disk_label.setStyleSheet(style)
         self.usage_label.setStyleSheet(style)
 
-        # Distribución en grilla 2x2
         report_layout.addWidget(self.cpu_label, 0, 0)
         report_layout.addWidget(self.ram_label, 0, 1)
         report_layout.addWidget(self.disk_label, 1, 0)
@@ -78,13 +71,12 @@ class HomePage(QtWidgets.QWidget):
 
         layout.addWidget(report_container, 0)
 
-        # Monitor
         self.monitor = Monitor(history_max=180)
         self.monitor.sample()
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self._tick)
-        self.timer.start(1000)  # 1 segundo
+        self.timer.start(1000) 
 
     def _tick(self):
         self.monitor.sample()
@@ -92,12 +84,10 @@ class HomePage(QtWidgets.QWidget):
         ram = self.monitor.ram_hist[-1]
         disk = self.monitor.disk_hist[-1]
 
-        # agregar datos a charts
         self.cpu_chart.update_data(list(self.monitor.cpu_hist))
         self.ram_chart.update_data(list(self.monitor.ram_hist))
         self.disk_chart.update_data(list(self.monitor.disk_hist))
 
-        # actualizar labels
         du = psutil.disk_usage(".")
         self.cpu_label.setText(f"CPU: {cpu:.1f}%")
         self.ram_label.setText(f"RAM: {ram:.1f}%")

@@ -48,7 +48,6 @@ def list_installed_apps() -> List[Dict[str, str]]:
                                     display_version, _ = winreg.QueryValueEx(sk, "DisplayVersion")
                                 except OSError:
                                     display_version = None
-                                # Extraer posibles rutas para abrir o icono
                                 try:
                                     install_location, _ = winreg.QueryValueEx(sk, "InstallLocation")
                                 except OSError:
@@ -63,7 +62,6 @@ def list_installed_apps() -> List[Dict[str, str]]:
                                     uninstall_string = None
                                 if display_name:
                                     path_guess = ""
-                                    # Preferir ejecutable en DisplayIcon, si existe
                                     if display_icon and os.path.exists(display_icon.split(",")[0].strip('"')):
                                         path_guess = display_icon.split(",")[0].strip('"')
                                     elif install_location and os.path.isdir(install_location):
@@ -88,9 +86,8 @@ def list_installed_apps() -> List[Dict[str, str]]:
         for root, path in paths:
             _read_key(root, path)
     except Exception:
-        # Si no está winreg o falla, devolver vacío
         pass
-    # Eliminar duplicados simples
+
     seen = set()
     filtered = []
     for a in apps:
@@ -101,7 +98,7 @@ def list_installed_apps() -> List[Dict[str, str]]:
     return filtered
 
 
-# --- App control helpers (Windows best-effort) ---
+
 def _is_windows() -> bool:
     return os.name == "nt"
 
@@ -113,19 +110,17 @@ def open_application(target: str) -> bool:
     if not _is_windows():
         return False
     try:
-        # Ruta directa
+
         if os.path.isfile(target):
-            os.startfile(target)  # type: ignore[attr-defined]
+            os.startfile(target) 
             return True
 
-        # Si llega "Nombre | C:\ruta\app.exe", extraer ruta si está presente
         if "|" in target:
             maybe_path = target.split("|")[-1].strip()
             if os.path.isfile(maybe_path):
-                os.startfile(maybe_path)  # type: ignore[attr-defined]
+                os.startfile(maybe_path) 
                 return True
 
-        # Intento: usar start sin ventana
         subprocess.Popen(["cmd", "/c", "start", "", target], shell=True)
         return True
     except Exception:
@@ -144,7 +139,6 @@ def close_application(name_or_exe: str) -> bool:
             image = exe
         else:
             image = exe + ".exe"
-        # /F fuerza; /T incluye procesos hijo
         result = subprocess.run(["taskkill", "/IM", image, "/F", "/T"], capture_output=True, text=True)
         return result.returncode == 0
     except Exception:
@@ -157,7 +151,7 @@ def uninstall_application(display_name: str) -> bool:
     if not _is_windows():
         return False
     try:
-        import winreg  # type: ignore
+        import winreg
 
         def _iter_uninstall_entries():
             paths = [
@@ -190,7 +184,6 @@ def uninstall_application(display_name: str) -> bool:
                         continue
                     if dname.strip().lower() != target_lower:
                         continue
-                    # Preferir QuietUninstallString, luego UninstallString
                     uninstall_cmd = None
                     for key_name in ("QuietUninstallString", "UninstallString"):
                         try:
@@ -201,8 +194,7 @@ def uninstall_application(display_name: str) -> bool:
                             continue
                     if not uninstall_cmd:
                         continue
-                    # Ejecutar desinstalador
-                    # Usar cmd /c para comandos con argumentos/espacios
+
                     subprocess.Popen(["cmd", "/c", uninstall_cmd], shell=True)
                     return True
             except Exception:

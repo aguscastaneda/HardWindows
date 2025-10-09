@@ -12,12 +12,10 @@ class NavigationBar(QtWidgets.QFrame):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        # Logo / title
         title = QtWidgets.QLabel("HardWindows")
         title.setObjectName("titleLabel")
         layout.addWidget(title)
 
-        # Buttons
         self.btn_home = QtWidgets.QPushButton(" Home")
         self.btn_home.setObjectName("navButton")
         self.btn_home.clicked.connect(lambda: self.emit_key("home"))
@@ -39,7 +37,6 @@ class NavigationBar(QtWidgets.QFrame):
 
         layout.addStretch(1)
 
-        # Small footer labels
         ver = QtWidgets.QLabel("v0.1")
         ver.setAlignment(QtCore.Qt.AlignCenter)
         layout.addWidget(ver)
@@ -53,7 +50,6 @@ class NavigationBar(QtWidgets.QFrame):
         self.set_active("home")
 
     def emit_key(self, key):
-        # activar visualmente
         self.set_active(key)
         self.button_clicked.emit(key)
 

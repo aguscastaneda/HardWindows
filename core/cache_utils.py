@@ -54,7 +54,6 @@ def clear_temp() -> Tuple[int, int]:
     # Prefetch
     candidates.append(r"C:\\Windows\\Prefetch")
 
-    # Recycle Bin no se toca para evitar efectos no deseados
 
     for path in candidates:
         if not path or not os.path.exists(path):
@@ -64,7 +63,6 @@ def clear_temp() -> Tuple[int, int]:
             deleted_total += d
             freed_total += f
             continue
-        # Es carpeta: borrar contenido, no la carpeta raíz
         try:
             for name in os.listdir(path):
                 full = os.path.join(path, name)
@@ -75,7 +73,6 @@ def clear_temp() -> Tuple[int, int]:
                 deleted_total += d
                 freed_total += f
         except Exception:
-            # permisos o archivos en uso
             continue
 
     return deleted_total, freed_total

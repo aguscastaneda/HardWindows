@@ -11,17 +11,14 @@ class ManagerPage(QtWidgets.QWidget):
         main.setContentsMargins(20, 20, 20, 20)
         main.setSpacing(15)
         
-        # Título
         title = QtWidgets.QLabel("Manager - Usuario")
         title.setObjectName("titleLabel")
         title.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         main.addWidget(title)
 
-        # Splitter principal vertical: arriba apps, abajo almacenamiento/seguridad
         main_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         main_splitter.setChildrenCollapsible(False)
 
-        # Arriba: panel de aplicaciones a todo el ancho
         apps_panel = QtWidgets.QWidget()
         apps_layout = QtWidgets.QVBoxLayout(apps_panel)
         apps_layout.setSpacing(10)
@@ -57,7 +54,6 @@ class ManagerPage(QtWidgets.QWidget):
             btns_apps.addWidget(b)
         apps_layout.addLayout(btns_apps, 0)
 
-        # Conectar señales de apps
         self.btn_refresh.clicked.connect(self.load_apps)
         self.btn_open.clicked.connect(self.on_open_app)
         self.btn_close.clicked.connect(self.on_close_app)
@@ -65,11 +61,9 @@ class ManagerPage(QtWidgets.QWidget):
 
         main_splitter.addWidget(apps_panel)
 
-        # Abajo: splitter horizontal entre almacenamiento y seguridad
         bottom_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         bottom_splitter.setChildrenCollapsible(False)
 
-        # Almacenamiento (card)
         storage_card = QtWidgets.QFrame()
         storage_card.setFrameShape(QtWidgets.QFrame.NoFrame)
         storage_layout = QtWidgets.QVBoxLayout(storage_card)
@@ -99,7 +93,6 @@ class ManagerPage(QtWidgets.QWidget):
         btn_clear_cache.clicked.connect(self.on_clear_cache)
         storage_layout.addWidget(btn_clear_cache, 0)
 
-        # Seguridad (card)
         security_card = QtWidgets.QFrame()
         security_card.setFrameShape(QtWidgets.QFrame.NoFrame)
         security_layout = QtWidgets.QVBoxLayout(security_card)
@@ -132,7 +125,6 @@ class ManagerPage(QtWidgets.QWidget):
             sec_btns.addWidget(b)
         security_layout.addLayout(sec_btns, 0)
 
-        # Señales de seguridad
         self.btn_lock.clicked.connect(self.on_lock)
         self.btn_logoff.clicked.connect(self.on_logoff)
 
@@ -142,12 +134,11 @@ class ManagerPage(QtWidgets.QWidget):
         bottom_splitter.setStretchFactor(1, 1)
 
         main_splitter.addWidget(bottom_splitter)
-        main_splitter.setStretchFactor(0, 3)  # Arriba más alto
-        main_splitter.setStretchFactor(1, 2)  # Abajo un poco menos
+        main_splitter.setStretchFactor(0, 3) 
+        main_splitter.setStretchFactor(1, 2)  
 
         main.addWidget(main_splitter)
 
-        # Inicializar
         self.load_system()
         self.load_apps()
 
@@ -168,7 +159,6 @@ class ManagerPage(QtWidgets.QWidget):
         text = ""
         for k, v in info.items():
             text += f"{k}: {v}\n"
-        # Resumen de discos
         try:
             parts = psutil.disk_partitions()
             for p in parts:
@@ -181,7 +171,6 @@ class ManagerPage(QtWidgets.QWidget):
             pass
         self.storage_info.setPlainText(text)
 
-        # Seguridad
         user = get_current_user()
         admin = "Sí" if is_admin() else "No"
         self.security_info.setText(f"Usuario actual: {user}\nPermisos de administrador: {admin}")

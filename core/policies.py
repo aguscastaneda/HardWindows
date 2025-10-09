@@ -11,12 +11,10 @@ def _open_or_create_subkey(root, path):
     try:
         return winreg.CreateKeyEx(root, path, 0, winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE)
     except OSError:
-        # Fallback read-only open (will fail on set)
         return winreg.OpenKey(root, path, 0, winreg.KEY_QUERY_VALUE)
 
 
 POLICY_MAP: Dict[str, Dict[str, str]] = {
-    # key_name: {"subkey": relative path under Policies, "value": value name}
     "DisableTaskMgr": {"subkey": r"System", "value": "DisableTaskMgr"},
     "NoControlPanel": {"subkey": r"Explorer", "value": "NoControlPanel"},
     "NoRun": {"subkey": r"Explorer", "value": "NoRun"},

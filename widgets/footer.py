@@ -42,7 +42,7 @@ class Footer(QtWidgets.QFrame):
         cpu = snap['cpu']
         ram = snap['ram']
 
-        # Colores dinámicos segun nivel de uso
+        # Colores dinamicos segun nivel de uso
         def colorize(value):
             if value < 50:
                 return "#00ff88"   # verde

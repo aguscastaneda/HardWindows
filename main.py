@@ -20,7 +20,7 @@ def main():
     if qss:
         app.setStyleSheet(qss)
 
-    # Si es admin, restaurar políticas globales a permitido
+    # Si es admin, restaurar politicas globales a permitido
     try:
         if is_admin():
             reset_all_to_allowed()
