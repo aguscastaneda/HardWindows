@@ -1,28 +1,52 @@
 import subprocess
 import shlex
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from .permissions import is_admin
 
 
-def list_local_users() -> list:
+def list_local_users() -> List[str]:
     """
     Lista usuarios locales usando 'net user' (Windows).
     """
     try:
         out = subprocess.check_output(["net", "user"], shell=True, text=True, stderr=subprocess.DEVNULL)
         lines = out.splitlines()
-        users = []
+        users: List[str] = []
         in_list = False
         for line in lines:
             if "------" in line:
                 in_list = True
                 continue
             if in_list:
-                if line.strip() == "":
+                text = line.strip()
+                if not text:
+                    # fin habitual de la lista
+                    break
+                lower = text.lower()
+                # cortar si aparece mensaje final (multi-idioma)
+                if lower.startswith("the command completed") or "comando" in lower and "complet" in lower:
                     break
                 parts = line.split()
                 users.extend(parts)
-        return users
+        # filtrar cuentas del sistema conocidas
+        blacklist = {
+            "defaultaccount", "defaultuser0", "guest", "invitado", "wdagutilityaccount", "$",
+        }
+        filtered: List[str] = []
+        for u in users:
+            uname = u.strip()
+            if not uname:
+                continue
+            low = uname.lower()
+            if low in blacklist:
+                continue
+            if low.endswith("$"):
+                continue
+            # Excluir tokens sueltos de mensajes
+            if low in {"se", "ha", "completado", "el", "comando", "correctamente." , "correctamente"}:
+                continue
+            filtered.append(uname)
+        return filtered
     except Exception:
         return []
 

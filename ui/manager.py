@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets, QtCore
+import os
 from core.system_utils import list_installed_apps, get_system_info, open_application, close_application, uninstall_application
 from core.cache_utils import clear_temp
 from core.permissions import is_admin, get_current_user, lock_screen, logoff
@@ -199,8 +200,16 @@ class ManagerPage(QtWidgets.QWidget):
         if not item:
             return
         parts = [p.strip() for p in item.text().split("|")]
+        # Intentar obtener un ejecutable fiable desde el path mostrado
         name = parts[0]
-        if not close_application(name):
+        path = parts[2] if len(parts) > 2 else ""
+        target = name
+        if path:
+            maybe_path = path.strip('"')
+            if os.path.isfile(maybe_path):
+                # Usar el nombre del ejecutable (p.ej. chrome.exe) para cerrar por imagen
+                target = os.path.basename(maybe_path)
+        if not close_application(target):
             QtWidgets.QMessageBox.warning(self, "Error", "No se pudo cerrar la aplicación seleccionada.")
 
     def on_uninstall_app(self):

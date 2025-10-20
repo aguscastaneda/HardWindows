@@ -128,8 +128,9 @@ def open_application(target: str) -> bool:
 
 def close_application(name_or_exe: str) -> bool:
     """
-    Intenta cerrar una aplicación por nombre de proceso (sin ruta). Usa taskkill /IM.
-    Acepta nombres como "notepad.exe" o "notepad".
+    Cierra una aplicación por nombre de proceso (sin ruta) o ejecutable.
+    1) Intenta con taskkill /IM.
+    2) Si falla, hace fallback buscando procesos con psutil por nombre y termina.
     """
     if not _is_windows():
         return False
@@ -139,8 +140,30 @@ def close_application(name_or_exe: str) -> bool:
             image = exe
         else:
             image = exe + ".exe"
+
+        # Intento 1: taskkill por imagen
         result = subprocess.run(["taskkill", "/IM", image, "/F", "/T"], capture_output=True, text=True)
-        return result.returncode == 0
+        if result.returncode == 0:
+            return True
+
+        # Intento 2: psutil – matar por coincidencia de nombre
+        killed_any = False
+        for proc in psutil.process_iter(attrs=["pid", "name"]):
+            try:
+                pname = (proc.info.get("name") or "").strip().lower()
+                if pname == image or pname == exe or pname.endswith("\\" + image):
+                    try:
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=2)
+                        except psutil.TimeoutExpired:
+                            proc.kill()
+                        killed_any = True
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        continue
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        return killed_any
     except Exception:
         return False
 

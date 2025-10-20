@@ -1,6 +1,6 @@
 import sys
 import os
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui  
 from ui.main_window import MainWindow
 from core.permissions import is_admin
 from core.policies import reset_all_to_allowed
